@@ -1,12 +1,14 @@
 package edu.yasidu.order_service.service.impl;
 
 
+import edu.yasidu.order_service.dto.InventoryRequestDto;
 import edu.yasidu.order_service.dto.OrderDto;
 import edu.yasidu.order_service.dto.OrderItemDto;
 import edu.yasidu.order_service.entity.Order;
 import edu.yasidu.order_service.entity.OrderItem;
 import edu.yasidu.order_service.repository.OrderItemRepository;
 import edu.yasidu.order_service.repository.OrderRepository;
+import edu.yasidu.order_service.dto.response.InventoryResponse;
 import edu.yasidu.order_service.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -24,50 +25,42 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemRepository orderItemRepository;
     private final WebClient webClient;
 
-    @Transactional
     @Override
     public void save(OrderDto orderDto) {
 
-        List<Object> inventories = webClient.get()
-                .uri("http://localhost:8082/inventory/all")
+        List<InventoryRequestDto> inventoryRequest = orderDto.getOrderItems()
+                .stream()
+                .map(itemDto -> new InventoryRequestDto(
+                        itemDto.getInventoryId(),
+                        itemDto.getQuantity()
+                ))
+                .toList();
+
+        // 1. Reserve inventory FIRST — outside any DB transaction
+        InventoryResponse response = webClient.post()
+                .uri("http://localhost:8082/inventory/reserve")
+                .bodyValue(inventoryRequest)
                 .retrieve()
-                .bodyToMono(List.class)
+                .bodyToMono(InventoryResponse.class)
                 .block();
 
-        for (OrderItemDto item : orderDto.getOrderItems()) {
-
-            Object inventoryObject = inventories.stream()
-                    .filter(inventory -> {
-                        Map<String, Object> inventoryMap = (Map<String, Object>) inventory;
-
-                        Integer inventoryId = (Integer) inventoryMap.get("id");
-
-                        return inventoryId.equals(item.getInventoryId());
-                    })
-                    .findFirst()
-                    .orElseThrow(() ->
-                            new RuntimeException("Inventory not found"));
-
-            Map<String, Object> inventory =
-                    (Map<String, Object>) inventoryObject;
-
-            Integer availableQty = (Integer) inventory.get("qty");
-
-            if (availableQty < item.getQuantity()) {
-                throw new RuntimeException(
-                        "Insufficient inventory for product: "
-                                + item.getProductId());
-            }
+        if (response == null || !response.isSuccess()) {
+            throw new RuntimeException("Insufficient inventory");
         }
 
-        // Save Order
+        // 2. DB work happens in a separate transactional method
+        saveOrderToDb(orderDto);
+    }
+
+    @Transactional
+    public void saveOrderToDb(OrderDto orderDto) {
+
         Order order = Order.builder()
                 .itemCount(orderDto.getItemCount())
                 .build();
 
         Order savedOrder = repository.save(order);
 
-        // Create OrderItems
         Iterable<OrderItem> orderItems = orderDto.getOrderItems()
                 .stream()
                 .map(itemDto -> OrderItem.builder()
@@ -80,17 +73,6 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
 
         orderItemRepository.saveAll(orderItems);
-
-        // Update inventory
-        for (OrderItemDto item : orderDto.getOrderItems()) {
-
-            webClient.put()
-                    .uri("http://localhost:8082/inventory/" + item.getInventoryId()
-                            + "/reduce/" + item.getQuantity())
-                    .retrieve()
-                    .bodyToMono(Void.class)
-                    .block();
-        }
     }
 
     @Override

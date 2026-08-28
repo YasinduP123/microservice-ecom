@@ -3,7 +3,9 @@ package edu.yasidu.Inventory_service.service.impl;
 import edu.yasidu.Inventory_service.dto.InventoryDto;
 import edu.yasidu.Inventory_service.entity.Inventory;
 import edu.yasidu.Inventory_service.repository.InventoryRepository;
+import edu.yasidu.Inventory_service.request.InventoryRequestDto;
 import edu.yasidu.Inventory_service.service.InventoryService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -54,5 +56,38 @@ public class InventoryServiceImpl implements InventoryService {
                 .productId(inventory.getProductId())
                 .qty(inventory.getQty())
                 .build()).toList();
+    }
+
+    @Transactional
+    @Override
+    public boolean reserve(List<InventoryRequestDto> request) {
+
+        // First check everything
+        for (InventoryRequestDto item : request) {
+
+            Inventory inventory = repository.findById(item.getId())
+                    .orElse(null);
+
+            if (inventory == null) {
+                return false;
+            }
+
+            if (inventory.getQty() < item.getQty()) {
+                return false;
+            }
+        }
+
+        // Then update everything
+        for (InventoryRequestDto item : request) {
+
+            Inventory inventory = repository.findById(item.getId())
+                    .orElseThrow();
+
+            inventory.setQty(
+                    inventory.getQty() - item.getQty()
+            );
+        }
+
+        return true;
     }
 }

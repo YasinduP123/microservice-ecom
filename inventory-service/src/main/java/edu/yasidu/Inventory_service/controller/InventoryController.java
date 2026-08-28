@@ -2,6 +2,8 @@ package edu.yasidu.Inventory_service.controller;
 
 
 import edu.yasidu.Inventory_service.dto.InventoryDto;
+import edu.yasidu.Inventory_service.request.InventoryRequestDto;
+import edu.yasidu.Inventory_service.response.InventoryResponse;
 import edu.yasidu.Inventory_service.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,11 +27,23 @@ public class InventoryController {
         return new ResponseEntity<>("Product saved successfully..." ,HttpStatus.ACCEPTED);
     }
 
-    @PatchMapping("/update")
-    private ResponseEntity<String> updateInventory(@RequestBody InventoryDto InventoryDto){
-        inventoryService.update(InventoryDto);
-        return new ResponseEntity<>("Product Updated successfully..." ,HttpStatus.ACCEPTED);
+    @PostMapping("/reserve")
+    public ResponseEntity<InventoryResponse> reserveInventory(
+            @RequestBody List<InventoryRequestDto> inventoryDto) {
+
+        boolean reserved = inventoryService.reserve(inventoryDto);
+
+        if (!reserved) {
+            return ResponseEntity.ok(
+                    new InventoryResponse(false, "Insufficient inventory")
+            );
+        }
+
+        return ResponseEntity.ok(
+                new InventoryResponse(true, "Inventory reserved successfully")
+        );
     }
+
 
     @GetMapping("/all")
     private ResponseEntity<List<InventoryDto>> getInventory(){
@@ -42,8 +56,8 @@ public class InventoryController {
         List<InventoryDto> Inventory = inventoryService.getInventoryById(inv_id);
         return new ResponseEntity<>(Inventory, HttpStatus.OK);
     }
-    
-    
+
+
 
 
 }
