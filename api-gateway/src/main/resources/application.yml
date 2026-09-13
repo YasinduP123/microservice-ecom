@@ -1,0 +1,61 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    loadbalancer:
+      cache:
+        ttl: 35s
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          routes:
+            - id: product-service
+              uri: lb://product-service
+              predicates:
+                - Path=/product/**
+
+            - id: order-service
+              uri: lb://order-service
+              predicates:
+                - Path=/order/**
+
+            - id: inventory-service
+              uri: lb://Inventory-service/**
+              predicates:
+                - Path=/inventory/**
+
+            - id: discovery-server
+              uri: http://localhost:8761
+              predicates:
+                - Path=/eureka/web
+              filters:
+                - SetPath=/
+
+            - id: discovery-server-static
+              uri: http://localhost:8761
+              predicates:
+                - Path=/eureka/**
+
+eureka:
+  client:
+    registry-fetch-interval-seconds: 5
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 5
+
+logging:
+  level:
+    org.springframework.cloud.gateway: TRACE
+    org.springframework.cloud.gateway.route.RouteDefinitionLocator: INFO

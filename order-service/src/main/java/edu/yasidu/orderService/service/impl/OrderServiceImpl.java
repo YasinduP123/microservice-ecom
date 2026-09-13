@@ -23,7 +23,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository repository;
     private final OrderItemRepository orderItemRepository;
-    private final WebClient webClient;
+    private final WebClient.Builder webClientBuilder;
 
     @Override
     public void save(OrderDto orderDto) {
@@ -37,8 +37,10 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
 
         // 1. Reserve inventory FIRST — outside any DB transaction
-        InventoryResponse response = webClient.post()
-                .uri("http://localhost:8082/inventory/reserve")
+        InventoryResponse response = webClientBuilder
+                .build()
+                .post()
+                .uri("http://Inventory-service/inventory/reserve")
                 .bodyValue(inventoryRequest)
                 .retrieve()
                 .bodyToMono(InventoryResponse.class)
