@@ -26,7 +26,9 @@ public class OrderServiceImpl implements OrderService {
     private final WebClient.Builder webClientBuilder;
 
     @Override
-    public void save(OrderDto orderDto) {
+    public String save(OrderDto orderDto) {
+
+        String idempotencyKey = orderDto.getOrderId();
 
         List<InventoryRequestDto> inventoryRequest = orderDto.getOrderItems()
                 .stream()
@@ -36,11 +38,11 @@ public class OrderServiceImpl implements OrderService {
                 ))
                 .toList();
 
-        // 1. Reserve inventory FIRST — outside any DB transaction
         InventoryResponse response = webClientBuilder
                 .build()
                 .post()
                 .uri("http://Inventory-service/inventory/reserve")
+                .header("Idempotency-Key", idempotencyKey)
                 .bodyValue(inventoryRequest)
                 .retrieve()
                 .bodyToMono(InventoryResponse.class)
@@ -50,8 +52,8 @@ public class OrderServiceImpl implements OrderService {
             throw new RuntimeException("Insufficient inventory");
         }
 
-        // 2. DB work happens in a separate transactional method
         saveOrderToDb(orderDto);
+        return "Order placed successfully...";
     }
 
     @Transactional
