@@ -15,6 +15,63 @@ spring:
 server:
   port: 8083
 
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+  endpoint:
+    health:
+      show-details: always
+
+# Resilience4j configs
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      inventory:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+
+
+
+  retry:
+    instances:
+      inventory:
+        max-attempts: 3
+        wait-duration: 5s
+#        retry-exceptions:
+#          - java.io.IOException
+#          - java.util.concurrent.TimeoutException
+
+#  ratelimiter:
+#    instances:
+#      inventory:
+#        limit-for-period: 10
+#        limit-refresh-period: 1s
+#        timeout-duration: 0
+
+#  bulkhead:
+#    instances:
+#      inventory:
+#        max-concurrent-calls: 10
+
+  timelimiter:
+    instances:
+      inventory:
+        timeout-duration: 3s
+
 eureka:
   client:
     registry-fetch-interval-seconds: 5

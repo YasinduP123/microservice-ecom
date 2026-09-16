@@ -5,6 +5,6 @@ import edu.yasidu.orderService.dto.OrderDto;
 import java.util.List;
 
 public interface OrderService {
-    void save(OrderDto orderDto);
+    String save(OrderDto orderDto);
     List<OrderDto> getOrders();
 }

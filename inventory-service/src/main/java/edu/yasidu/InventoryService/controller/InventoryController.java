@@ -6,6 +6,7 @@ import edu.yasidu.InventoryService.request.InventoryRequestDto;
 import edu.yasidu.InventoryService.response.InventoryResponse;
 import edu.yasidu.InventoryService.service.InventoryService;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,22 +29,13 @@ public class InventoryController {
     }
 
     @PostMapping("/reserve")
+    @SneakyThrows
     public ResponseEntity<InventoryResponse> reserveInventory(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestBody List<InventoryRequestDto> inventoryDto) {
-
-        boolean reserved = inventoryService.reserve(inventoryDto);
-
-        if (!reserved) {
-            return ResponseEntity.ok(
-                    new InventoryResponse(false, "Insufficient inventory")
-            );
-        }
-
-        return ResponseEntity.ok(
-                new InventoryResponse(true, "Inventory reserved successfully")
-        );
+        InventoryResponse response = inventoryService.reserveWithIdempotency(idempotencyKey, inventoryDto);
+        return ResponseEntity.ok(response);
     }
-
 
     @GetMapping("/all")
     private ResponseEntity<List<InventoryDto>> getInventory(){

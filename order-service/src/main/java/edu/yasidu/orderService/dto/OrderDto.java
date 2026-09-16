@@ -14,6 +14,7 @@ import java.util.List;
 @Builder
 public class OrderDto {
     private Long id;
+    private String orderId;
     private Integer itemCount;
     private List<OrderItemDto> orderItems;
 }
