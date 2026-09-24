@@ -30,9 +30,6 @@ public class OrderController {
     @Retry(name = "inventory")
     public CompletableFuture<ResponseEntity<String>> placeOrder(@RequestBody OrderDto orderDto){
 
-        // orderId එක client එකෙන් එවපු එකක් නොවෙයි නම්, මෙතන set කරන්න ඕන
-        // (Retry attempt එකින් එකට මේ method එකම run වුනාට, orderDto object එකම reuse වෙනවා,
-        //  ඒක නිසා orderId එකක් මෙතන set කලොත් attempts 3ටම එකම id එකයි)
         if (orderDto.getOrderId() == null) {
             orderDto.setOrderId(UUID.randomUUID().toString());
         }

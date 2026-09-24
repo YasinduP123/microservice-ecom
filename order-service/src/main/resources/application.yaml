@@ -82,3 +82,8 @@ eureka:
     instance-id: ${spring.application.name}:${server.port}
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
+
+logging:
+  level:
+    edu.yasidu.orderService.client: debug
+
