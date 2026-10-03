@@ -30,50 +30,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository repository;
     private final OrderItemRepository orderItemRepository;
-    private final RestClient.Builder restClientBuilder;
     private final InventoryClient inventoryClient;
-
-//    @Override
-//    public String save(OrderDto orderDto) {
-//
-//        String idempotencyKey = orderDto.getOrderId();
-//
-//        List<InventoryRequestDto> inventoryRequest = orderDto.getOrderItems()
-//                .stream()
-//                .map(itemDto -> new InventoryRequestDto(
-//                        itemDto.getInventoryId(),
-//                        itemDto.getQuantity()
-//                ))
-//                .toList();
-//
-//        InventoryResponse response;
-//        try {
-//            response = restClientBuilder
-//                    .build()
-//                    .post()
-//                    .uri("http://inventory-service/inventory/reserve")
-//                    .header("Idempotency-Key", idempotencyKey)
-//                    .body(inventoryRequest)
-//                    .retrieve()
-//                    .onStatus(HttpStatusCode::is4xxClientError, (req, res) -> {
-//                        throw new InsufficientInventoryException("Inventory rejected reservation");
-//                    })
-//                    .onStatus(HttpStatusCode::is5xxServerError, (req, res) -> {
-//                        throw new InventoryServiceUnavailableException("Inventory service error");
-//                    })
-//                    .body(InventoryResponse.class);
-//        } catch (ResourceAccessException ex) {
-//            // timeout / connection refused — inventory-service is down or unreachable
-//            throw new InventoryServiceUnavailableException("Could not reach inventory service", ex);
-//        }
-//
-//        if (response == null || !response.isSuccess()) {
-//            throw new RuntimeException("Insufficient inventory");
-//        }
-//
-//        saveOrderToDb(orderDto);
-//        return "Order placed successfully...";
-//    }
 
     @Override
     public String save(OrderDto orderDto) {
