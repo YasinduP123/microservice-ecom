@@ -23,7 +23,7 @@ public class Order {
     private Long id;
 
     @Column(name = "ORDER_ID",  unique = true, nullable = false)
-    private UUID orderId;
+    private String orderId;
 
     @Column(name = "ITEM_COUNT")
     private Integer itemCount;

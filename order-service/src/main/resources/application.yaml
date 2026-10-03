@@ -44,6 +44,13 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 3
         automatic-transition-from-open-to-half-open-enabled: true
 
+  ratelimiter:
+    instances:
+      inventory:
+        limit-for-period: 10 # 10 Requests per 10 secs
+        limit-refresh-period: 10s # 10 secs for refresh limit
+        timeout-duration: 0s
+
 
 
   retry:
@@ -51,16 +58,9 @@ resilience4j:
       inventory:
         max-attempts: 3
         wait-duration: 5s
-#        retry-exceptions:
-#          - java.io.IOException
+        retry-exceptions:
+          - java.io.IOException
 #          - java.util.concurrent.TimeoutException
-
-#  ratelimiter:
-#    instances:
-#      inventory:
-#        limit-for-period: 10
-#        limit-refresh-period: 1s
-#        timeout-duration: 0
 
 #  bulkhead:
 #    instances:
@@ -82,3 +82,8 @@ eureka:
     instance-id: ${spring.application.name}:${server.port}
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
+
+logging:
+  level:
+    edu.yasidu.orderService.client: debug
+

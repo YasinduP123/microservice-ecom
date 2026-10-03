@@ -1,18 +1,25 @@
 package edu.yasidu.orderService.service.impl;
 
 
+import edu.yasidu.orderService.client.InventoryClient;
 import edu.yasidu.orderService.dto.InventoryRequestDto;
 import edu.yasidu.orderService.dto.OrderDto;
 import edu.yasidu.orderService.dto.OrderItemDto;
 import edu.yasidu.orderService.entity.Order;
 import edu.yasidu.orderService.entity.OrderItem;
+import edu.yasidu.orderService.exception.InsufficientInventoryException;
+import edu.yasidu.orderService.exception.InventoryServiceUnavailableException;
 import edu.yasidu.orderService.repository.OrderItemRepository;
 import edu.yasidu.orderService.repository.OrderRepository;
 import edu.yasidu.orderService.dto.response.InventoryResponse;
 import edu.yasidu.orderService.service.OrderService;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClient;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.List;
@@ -23,7 +30,7 @@ public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository repository;
     private final OrderItemRepository orderItemRepository;
-    private final WebClient.Builder webClientBuilder;
+    private final InventoryClient inventoryClient;
 
     @Override
     public String save(OrderDto orderDto) {
@@ -38,18 +45,19 @@ public class OrderServiceImpl implements OrderService {
                 ))
                 .toList();
 
-        InventoryResponse response = webClientBuilder
-                .build()
-                .post()
-                .uri("http://Inventory-service/inventory/reserve")
-                .header("Idempotency-Key", idempotencyKey)
-                .bodyValue(inventoryRequest)
-                .retrieve()
-                .bodyToMono(InventoryResponse.class)
-                .block();
+        InventoryResponse response;
+        try {
+            response = inventoryClient.reserveInventory(idempotencyKey, inventoryRequest);
+        } catch (FeignException.FeignClientException ex) {       // 4xx
+            throw new InsufficientInventoryException("Inventory rejected reservation");
+        } catch (FeignException.FeignServerException ex) {        // 5xx
+            throw new InventoryServiceUnavailableException("Inventory service error", ex);
+        } catch (FeignException ex) {                              // connection issues, timeouts, etc.
+            throw new InventoryServiceUnavailableException("Could not reach inventory service", ex);
+        }
 
         if (response == null || !response.isSuccess()) {
-            throw new RuntimeException("Insufficient inventory");
+            throw new InsufficientInventoryException("Insufficient inventory");
         }
 
         saveOrderToDb(orderDto);
@@ -61,6 +69,8 @@ public class OrderServiceImpl implements OrderService {
 
         Order order = Order.builder()
                 .itemCount(orderDto.getItemCount())
+                .orderId(orderDto.getOrderId())
+                .itemCount(orderDto.getOrderItems().size())
                 .build();
 
         Order savedOrder = repository.save(order);

@@ -4,6 +4,7 @@ package edu.yasidu.orderService.controller;
 import edu.yasidu.orderService.dto.OrderDto;
 import edu.yasidu.orderService.service.OrderService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
@@ -27,12 +28,10 @@ public class OrderController {
     @PostMapping("/")
     @CircuitBreaker(name = "inventory", fallbackMethod = "fallBackMethod")
     @TimeLimiter(name = "inventory")
+    @RateLimiter(name = "inventory", fallbackMethod = "fallBackMethod")
     @Retry(name = "inventory")
     public CompletableFuture<ResponseEntity<String>> placeOrder(@RequestBody OrderDto orderDto){
 
-        // orderId එක client එකෙන් එවපු එකක් නොවෙයි නම්, මෙතන set කරන්න ඕන
-        // (Retry attempt එකින් එකට මේ method එකම run වුනාට, orderDto object එකම reuse වෙනවා,
-        //  ඒක නිසා orderId එකක් මෙතන set කලොත් attempts 3ටම එකම id එකයි)
         if (orderDto.getOrderId() == null) {
             orderDto.setOrderId(UUID.randomUUID().toString());
         }
@@ -49,6 +48,9 @@ public class OrderController {
     }
 
     public CompletableFuture<ResponseEntity<String>> fallBackMethod(OrderDto orderDtoDto, RuntimeException runtimeException){
+
+        log.error("Request limit exceeded for 10 seconds...");
+
         return CompletableFuture.supplyAsync(()->
                 new ResponseEntity<>(
                         "Oops! Something went wrong, please order after sometime!",

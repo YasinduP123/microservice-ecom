@@ -33,6 +33,7 @@ public class InventoryController {
     public ResponseEntity<InventoryResponse> reserveInventory(
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestBody List<InventoryRequestDto> inventoryDto) {
+
         InventoryResponse response = inventoryService.reserveWithIdempotency(idempotencyKey, inventoryDto);
         return ResponseEntity.ok(response);
     }
