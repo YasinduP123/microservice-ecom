@@ -2,6 +2,18 @@ spring:
   application:
     name: order-service
 
+  cloud:
+    circuitbreaker:
+      resilience4j:
+        enableSemaphoreDefaultBulkhead: true
+#    openfeign:
+#      client:
+#        config:
+#          inventory-service:
+#            connect-timeout: 2000
+#            read-timeout: 30000
+
+
   datasource:
     url: jdbc:mysql://localhost:3306/order_db
     username: root
@@ -19,6 +31,13 @@ management:
   health:
     circuitbreakers:
       enabled: true
+
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      zipkin:
+        endpoint: http://localhost:9411/api/v2/spans
 
   endpoints:
     web:
@@ -60,17 +79,19 @@ resilience4j:
         wait-duration: 5s
         retry-exceptions:
           - java.io.IOException
-#          - java.util.concurrent.TimeoutException
+          - java.util.concurrent.TimeoutException
 
-#  bulkhead:
-#    instances:
-#      inventory:
-#        max-concurrent-calls: 10
+  bulkhead:
+    instances:
+      inventory:
+        max-concurrent-calls: 10
+        max-wait-duration: 0s
 
   timelimiter:
     instances:
       inventory:
-        timeout-duration: 3s
+        timeout-duration: 10s
+        cancel-running-future: true
 
 eureka:
   client:

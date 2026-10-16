@@ -1,14 +1,15 @@
 package edu.yasidu.orderService.entity;
 
 
+import edu.yasidu.orderService.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -27,6 +28,11 @@ public class Order {
 
     @Column(name = "ITEM_COUNT")
     private Integer itemCount;
+
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
+
+    private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "fkOrder",cascade = CascadeType.ALL)
     private List<OrderItem> orderItems;

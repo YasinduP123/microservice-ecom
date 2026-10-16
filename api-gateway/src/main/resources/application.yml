@@ -61,7 +61,15 @@ eureka:
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
 
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      zipkin:
+        endpoint: http://localhost:9411/api/v2/spans
+
 logging:
   level:
-    org.springframework.cloud.gateway: TRACE
+    org.springframework.cloud.gateway: INFO
     org.springframework.cloud.gateway.route.RouteDefinitionLocator: INFO

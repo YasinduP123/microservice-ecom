@@ -28,7 +28,7 @@ public class OrderController {
     @PostMapping("/")
     @CircuitBreaker(name = "inventory", fallbackMethod = "fallBackMethod")
     @TimeLimiter(name = "inventory")
-    @RateLimiter(name = "inventory", fallbackMethod = "fallBackMethod")
+    @RateLimiter(name = "inventory", fallbackMethod = "rateLimitFallBackMethod")
     @Retry(name = "inventory")
     public CompletableFuture<ResponseEntity<String>> placeOrder(@RequestBody OrderDto orderDto){
 
@@ -49,7 +49,18 @@ public class OrderController {
 
     public CompletableFuture<ResponseEntity<String>> fallBackMethod(OrderDto orderDtoDto, RuntimeException runtimeException){
 
-        log.error("Request limit exceeded for 10 seconds...");
+        log.error("Request limit exceeded for 10  seconds...");
+
+        return CompletableFuture.supplyAsync(()->
+                new ResponseEntity<>(
+                        "Something went wrong, please order after sometime!",
+                        HttpStatus.SERVICE_UNAVAILABLE)
+        );
+    }
+
+    public CompletableFuture<ResponseEntity<String>> rateLimitFallBackMethod(OrderDto orderDtoDto, RuntimeException runtimeException){
+
+        log.error("Request overloading...");
 
         return CompletableFuture.supplyAsync(()->
                 new ResponseEntity<>(

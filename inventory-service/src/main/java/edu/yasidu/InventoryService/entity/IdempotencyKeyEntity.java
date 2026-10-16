@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -23,6 +24,10 @@ public class IdempotencyKeyEntity {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String responseBody;
 
+    @Column(name = "status")
+    private String status;
+
     @Column(updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    private LocalDateTime createdAt;
 }

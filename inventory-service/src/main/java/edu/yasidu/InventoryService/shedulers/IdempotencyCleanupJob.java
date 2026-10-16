@@ -19,7 +19,7 @@ public class IdempotencyCleanupJob {
     @Scheduled(fixedRate = 3600000) // 1 hour = 3,600,000 ms
     @Transactional
     public void cleanupOldKeys() {
-        LocalDateTime cutoff = LocalDateTime.now().minusHours(24);
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(1);
         int deleted = idempotencyRepository.deleteByCreatedAtBefore(cutoff);
         log.info("Cleaned up {} expired idempotency keys", deleted);
     }

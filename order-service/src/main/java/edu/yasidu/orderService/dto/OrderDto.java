@@ -1,6 +1,7 @@
 package edu.yasidu.orderService.dto;
 
 
+import edu.yasidu.orderService.enums.OrderStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,5 +17,6 @@ public class OrderDto {
     private Long id;
     private String orderId;
     private Integer itemCount;
+    private OrderStatus status;
     private List<OrderItemDto> orderItems;
 }
