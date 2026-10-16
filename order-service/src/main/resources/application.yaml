@@ -2,6 +2,18 @@ spring:
   application:
     name: order-service
 
+  cloud:
+    circuitbreaker:
+      resilience4j:
+        enableSemaphoreDefaultBulkhead: true
+#    openfeign:
+#      client:
+#        config:
+#          inventory-service:
+#            connect-timeout: 2000
+#            read-timeout: 30000
+
+
   datasource:
     url: jdbc:mysql://localhost:3306/order_db
     username: root
@@ -15,6 +27,72 @@ spring:
 server:
   port: 8083
 
+management:
+  health:
+    circuitbreakers:
+      enabled: true
+
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      zipkin:
+        endpoint: http://localhost:9411/api/v2/spans
+
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+  endpoint:
+    health:
+      show-details: always
+
+# Resilience4j configs
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      inventory:
+        register-health-indicator: true
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+
+  ratelimiter:
+    instances:
+      inventory:
+        limit-for-period: 10 # 10 Requests per 10 secs
+        limit-refresh-period: 10s # 10 secs for refresh limit
+        timeout-duration: 0s
+
+
+
+  retry:
+    instances:
+      inventory:
+        max-attempts: 3
+        wait-duration: 5s
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+
+  bulkhead:
+    instances:
+      inventory:
+        max-concurrent-calls: 10
+        max-wait-duration: 0s
+
+  timelimiter:
+    instances:
+      inventory:
+        timeout-duration: 10s
+        cancel-running-future: true
+
 eureka:
   client:
     registry-fetch-interval-seconds: 5
@@ -25,3 +103,8 @@ eureka:
     instance-id: ${spring.application.name}:${server.port}
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 5
+
+logging:
+  level:
+    edu.yasidu.orderService.client: debug
+

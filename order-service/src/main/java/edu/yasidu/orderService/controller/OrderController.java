@@ -3,6 +3,10 @@ package edu.yasidu.orderService.controller;
 
 import edu.yasidu.orderService.dto.OrderDto;
 import edu.yasidu.orderService.service.OrderService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.retry.annotation.Retry;
+import io.github.resilience4j.timelimiter.annotation.TimeLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -10,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/order")
@@ -20,16 +26,47 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping("/")
-    private ResponseEntity<String> placeOrder(@RequestBody OrderDto orderDtoDto){
-        orderService.save(orderDtoDto);
-        return new ResponseEntity<>("Order placed successfully..." ,HttpStatus.ACCEPTED);
+    @CircuitBreaker(name = "inventory", fallbackMethod = "fallBackMethod")
+    @TimeLimiter(name = "inventory")
+    @RateLimiter(name = "inventory", fallbackMethod = "rateLimitFallBackMethod")
+    @Retry(name = "inventory")
+    public CompletableFuture<ResponseEntity<String>> placeOrder(@RequestBody OrderDto orderDto){
+
+        if (orderDto.getOrderId() == null) {
+            orderDto.setOrderId(UUID.randomUUID().toString());
+        }
+
+        return CompletableFuture.supplyAsync(() ->
+                new ResponseEntity<>(orderService.save(orderDto), HttpStatus.ACCEPTED)
+        );
     }
 
     @GetMapping("/all")
-    private ResponseEntity<List<OrderDto>> getOrders(){
+    public ResponseEntity<List<OrderDto>> getOrders(){
         List<OrderDto> products = orderService.getOrders();
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
+    public CompletableFuture<ResponseEntity<String>> fallBackMethod(OrderDto orderDtoDto, RuntimeException runtimeException){
+
+        log.error("Request limit exceeded for 10  seconds...");
+
+        return CompletableFuture.supplyAsync(()->
+                new ResponseEntity<>(
+                        "Something went wrong, please order after sometime!",
+                        HttpStatus.SERVICE_UNAVAILABLE)
+        );
+    }
+
+    public CompletableFuture<ResponseEntity<String>> rateLimitFallBackMethod(OrderDto orderDtoDto, RuntimeException runtimeException){
+
+        log.error("Request overloading...");
+
+        return CompletableFuture.supplyAsync(()->
+                new ResponseEntity<>(
+                        "Oops! Something went wrong, please order after sometime!",
+                        HttpStatus.SERVICE_UNAVAILABLE)
+        );
+    }
 
 }
